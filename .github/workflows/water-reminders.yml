@@ -8,8 +8,6 @@ on:
         required: false
         default: "💧 Hydra test reminder — have some water."
   schedule:
-    # India Standard Time (Asia/Kolkata). Times are deliberately off the hour
-    # because GitHub notes that scheduled workflows can be delayed under load.
     - cron: "7 8 * * *"
       timezone: "Asia/Kolkata"
     - cron: "7 10 * * *"
@@ -39,11 +37,7 @@ jobs:
           TRIGGER: ${{ github.event_name }}
         run: |
           set -euo pipefail
-
-          if [ -z "${NTFY_TOPIC:-}" ]; then
-            echo "NTFY_TOPIC secret is missing."
-            exit 1
-          fi
+          test -n "${NTFY_TOPIC:-}" || { echo "Missing NTFY_TOPIC"; exit 1; }
 
           if [ "$TRIGGER" = "workflow_dispatch" ]; then
             MESSAGE="${TEST_MESSAGE:-💧 Hydra test reminder — have some water.}"
