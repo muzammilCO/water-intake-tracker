@@ -472,3 +472,23 @@ Then both devices have the same hydration history.
 ## One practical note
 
 GitHub commits every successful update to the JSON file. For a personal tracker with a handful of water entries per day, this is small and manageable. If you eventually turn Hydra into a high-frequency app with thousands of events, I would change the storage architecture. For a personal water tracker, GitHub is an appropriate lightweight persistence layer.
+
+
+## Sync troubleshooting
+
+If **Sync & merge** says 401:
+- Create a new fine-grained GitHub token.
+- Repository access: only this Hydra repository.
+- Repository permission: **Contents → Read and write**.
+- Make sure you paste the token into Hydra's Sync dialog.
+
+If it says 403:
+- The token doesn't have write access to this repository, or the repository isn't included in the token's selected repositories.
+
+If it says 404:
+- Check GitHub owner, repository, branch, and that the repository is accessible to the token.
+
+After changing `app.js`/`index.html`, push to `main` and wait for the Pages deployment workflow to finish. Then do a hard refresh on your phone/browser; GitHub Pages can otherwise serve a previously cached asset.
+
+For a brand-new repository the first **Sync & merge** creates:
+`data/water-data.json`
