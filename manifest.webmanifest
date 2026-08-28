@@ -1,0 +1,10 @@
+{
+  "name": "Hydra — Water Tracker",
+  "short_name": "Hydra",
+  "description": "Private, local-first daily water tracker.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#0f172a",
+  "icons": []
+}

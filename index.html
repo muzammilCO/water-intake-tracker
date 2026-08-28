@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="A private, local-first water tracker with GitHub Actions and ntfy reminders.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E💧%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <title>Hydra — Water Tracker</title>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">💧</div>
+        <div>
+          <div class="eyebrow">PRIVATE · LOCAL-FIRST</div>
+          <h1>Hydra</h1>
+        </div>
+      </div>
+      <div class="top-actions"><button class="sync-top-btn" id="syncSettingsBtn" type="button" title="Sync history across devices">☁ <span>Sync</span></button><button class="icon-btn" id="settingsBtn" type="button" aria-label="Open settings" title="Settings">⚙️</button></div>
+    </header>
+
+    <section class="hero card">
+      <div class="hero-copy">
+        <div class="date-line" id="todayLabel"></div>
+        <h2 id="greeting">Stay hydrated.</h2>
+        <p id="statusText">Every glass counts.</p>
+      </div>
+      <div class="ring-wrap" aria-label="Today's hydration progress">
+        <svg class="progress-ring" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="ring-track" cx="60" cy="60" r="48"></circle>
+          <circle class="ring-value" id="ringValue" cx="60" cy="60" r="48"></circle>
+        </svg>
+        <div class="ring-center">
+          <strong id="progressPercent">0%</strong>
+          <span>today</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="amount card">
+      <div class="amount-row">
+        <div>
+          <span class="muted">Consumed</span>
+          <div class="amount-value"><span id="consumed">0</span><small> ml</small></div>
+        </div>
+        <div class="target-block">
+          <span class="muted">Target</span>
+          <strong id="targetLabel">3,000 ml</strong>
+          <button class="text-btn" id="editTargetBtn" type="button">Change</button>
+        </div>
+      </div>
+      <div class="bar" aria-hidden="true"><div id="progressBar"></div></div>
+      <div class="bar-meta">
+        <span id="remainingLabel">3,000 ml remaining</span>
+        <span id="goalLabel">0 / 3,000 ml</span>
+      </div>
+    </section>
+
+    <section class="quick-add">
+      <div class="section-heading">
+        <h3>Log water</h3>
+        <span class="muted">Quick add</span>
+      </div>
+      <div class="add-grid">
+        <button class="add-btn" data-add="250" type="button"><span>+250</span><small>ml</small></button>
+        <button class="add-btn featured" data-add="500" type="button"><span>+500</span><small>ml</small></button>
+        <button class="add-btn" data-add="750" type="button"><span>+750</span><small>ml</small></button>
+        <button class="add-btn custom" id="customAddBtn" type="button"><span>+</span><small>Custom</small></button>
+      </div>
+      <button class="undo-btn" id="undoBtn" type="button" disabled>Undo last entry</button>
+    </section>
+
+    <section class="card history-card">
+      <div class="section-heading">
+        <div>
+          <h3>Today's intake</h3>
+          <span class="muted" id="entryCount">0 entries</span>
+        </div>
+        <span class="streak-pill" id="streakPill">0 day streak</span>
+      </div>
+      <div id="todayEntries" class="entries empty-state">
+        <div class="empty-icon">🥤</div>
+        <p>No water logged yet.</p>
+        <small>Tap a quick-add button above to start.</small>
+      </div>
+    </section>
+
+    <section class="card week-card">
+      <div class="section-heading">
+        <div>
+          <h3>Last 7 days</h3>
+          <span class="muted">Daily progress</span>
+        </div>
+        <span class="muted" id="weeklyAverage">Avg —</span>
+      </div>
+      <div id="weekChart" class="week-chart" aria-label="Last 7 days water intake chart"></div>
+    </section>
+
+    <section class="stats-grid">
+      <div class="stat card">
+        <span class="muted">Best day</span>
+        <strong id="bestDay">—</strong>
+        <small id="bestDayDate">No data yet</small>
+      </div>
+      <div class="stat card">
+        <span class="muted">7-day average</span>
+        <strong id="avgStat">—</strong>
+        <small id="avgPercent">—</small>
+      </div>
+      <div class="stat card">
+        <span class="muted">Goal days</span>
+        <strong id="goalDays">0</strong>
+        <small>in the last 7 days</small>
+      </div>
+      <div class="stat card">
+        <span class="muted">Current streak</span>
+        <strong id="streakStat">0</strong>
+        <small>days at target</small>
+      </div>
+    </section>
+
+    <footer>
+      <span>Local-first · optional GitHub sync</span>
+      <div class="footer-actions"><button class="text-btn" id="backupBtn" type="button">Backup / Restore</button></div>
+    </footer>
+  </main>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" class="dialog-card" id="settingsForm">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow">SETTINGS</div>
+          <h2>Your hydration plan</h2>
+        </div>
+        <button class="icon-btn" value="cancel" type="submit" aria-label="Close">×</button>
+      </div>
+
+      <label>
+        Daily target
+        <div class="input-with-suffix"><input id="targetInput" type="number" min="500" max="10000" step="50" inputmode="numeric"><span>ml</span></div>
+      </label>
+
+      <label>
+        Preferred reminder window
+        <div class="two-inputs">
+          <input id="startTimeInput" type="time">
+          <span>to</span>
+          <input id="endTimeInput" type="time">
+        </div>
+      </label>
+
+      <div class="notice">
+        <strong>Push reminders</strong>
+        <p>GitHub Actions + ntfy handles reminders independently of this page. Change the times in <code>.github/workflows/water-reminders.yml</code>.</p>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="secondary-btn" value="cancel" type="submit">Cancel</button>
+        <button class="primary-btn" id="saveSettingsBtn" value="default" type="submit">Save changes</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="customDialog">
+    <form method="dialog" class="dialog-card" id="customForm">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow">QUICK ADD</div>
+          <h2>How much?</h2>
+        </div>
+        <button class="icon-btn" value="cancel" type="submit" aria-label="Close">×</button>
+      </div>
+      <label>
+        Amount
+        <div class="input-with-suffix"><input id="customAmountInput" type="number" min="50" max="3000" step="50" inputmode="numeric" placeholder="e.g. 350"><span>ml</span></div>
+      </label>
+      <div class="dialog-actions">
+        <button class="secondary-btn" value="cancel" type="submit">Cancel</button>
+        <button class="primary-btn" id="addCustomBtn" value="default" type="submit">Add water</button>
+      </div>
+    </form>
+  </dialog>
+
+
+  <dialog id="syncDialog">
+    <form method="dialog" class="dialog-card sync-dialog-card">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow">CLOUD SYNC</div>
+          <h2>Sync across devices</h2>
+        </div>
+        <button class="icon-btn" id="closeSyncBtn" value="cancel" type="submit" aria-label="Close">×</button>
+      </div>
+
+      <p class="muted intro-copy">Hydra stores your shared history in a JSON file inside your GitHub repository. No separate database is used.</p>
+
+      <div class="sync-grid">
+        <label>GitHub owner<input id="syncOwner" type="text" autocomplete="username" placeholder="your-username"></label>
+        <label>Repository<input id="syncRepo" type="text" autocomplete="off" placeholder="hydra-water-tracker"></label>
+        <label>Branch<input id="syncBranch" type="text" autocomplete="off" value="main"></label>
+        <label>Data file path<input id="syncPath" type="text" autocomplete="off" value="data/water-data.json"></label>
+      </div>
+
+      <label>
+        Fine-grained GitHub token
+        <input id="syncToken" type="password" autocomplete="off" placeholder="github_pat_...">
+      </label>
+
+      <label class="check-row"><input id="rememberToken" type="checkbox"><span>Remember token on this device</span></label>
+
+      <div class="sync-note">
+        <strong>🔒 Security</strong>
+        <p>Use a <b>fine-grained</b> token limited to this repository with <b>Contents → Read and write</b>. Do not use a classic token and never put a token in your GitHub source files.</p>
+      </div>
+
+      <div id="syncStatus" class="sync-status">Enter your private-repo details to sync.</div>
+
+      <div class="dialog-actions sync-actions">
+        <button class="secondary-btn" id="syncHelpBtn" type="button">Setup help</button>
+        <button class="secondary-btn" id="fetchButton" type="button">Fetch history</button>
+        <button class="primary-btn" id="syncButton" type="button">Sync &amp; merge</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="backupDialog">
+    <div class="dialog-card">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow">YOUR DATA</div>
+          <h2>Backup / Restore</h2>
+        </div>
+        <button class="icon-btn" id="closeBackupBtn" type="button" aria-label="Close">×</button>
+      </div>
+      <p class="muted">Your history is stored in this browser. Export a JSON backup if you want to move it to another device or keep an offline copy.</p>
+      <div class="backup-actions">
+        <button class="primary-btn" id="exportBtn" type="button">Export JSON</button>
+        <label class="secondary-btn file-btn">Import JSON<input id="importInput" type="file" accept="application/json,.json"></label>
+      </div>
+      <button class="danger-btn" id="clearDataBtn" type="button">Clear all local data</button>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
